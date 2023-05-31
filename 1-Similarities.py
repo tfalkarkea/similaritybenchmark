@@ -2,12 +2,14 @@ import os
 import sys
 import cPickle as pickle
 import itertools
+import multiprocessing
 from collections import defaultdict, Counter
 import benchlib.chembl as chembl
 import benchlib.fingerprint_lib as flib # From benchmarking platform
 from rdkit import Chem, DataStructs
 from rdkit.Chem import Descriptors
 from rdkit.Chem.Fraggle import FraggleSim
+from itertools import repeat
 from multiprocessing import Pool
 
 def readBenchmark(fname):
@@ -77,6 +79,17 @@ def get_rdkitmols(dataset):
             tmp.append(mol)
         yield tmp
 
+def run_iteration(combo_in):
+    iternum,benchpath = combo_in
+    print "\nITERATION %d\n" % iternum
+    filename = os.path.join(benchpath, "dataset", "%d.txt" % iternum)
+    dataset = list(readBenchmark(filename))
+
+    d = []
+    for data in dataset:
+        d.append([chembl.smiles_lookup[x] for x in data])
+    evaluate_similarity_method(d, os.path.join(benchpath, "similarities", str(iternum)))
+
 if __name__ == "__main__":
     for benchmark in ["SingleAssay", "MultiAssay"]:
         # Note that the following loop is completely parallelisable
@@ -84,12 +97,7 @@ if __name__ == "__main__":
         #      another to finish in half the time
         if not os.path.isdir(os.path.join(benchmark, "similarities")):
             os.mkdir(os.path.join(benchmark, "similarities"))
-        for M in range(15):
-            print "\nITERATION %d\n" % M
-            filename = os.path.join(benchmark, "dataset", "%d.txt" % M)
-            dataset = list(readBenchmark(filename))
-
-            d = []
-            for data in dataset:
-                d.append([chembl.smiles_lookup[x] for x in data])
-            evaluate_similarity_method(d, os.path.join(benchmark, "similarities", str(M)))
+        pool = Pool(multiprocessing.cpu_count())
+        inputs = zip(range(15), repeat(benchmark))
+        print(inputs)
+        pool.map(run_iteration, inputs)
