@@ -84,7 +84,7 @@ if __name__ == "__main__":
         #      another to finish in half the time
         if not os.path.isdir(os.path.join(benchmark, "similarities")):
             os.mkdir(os.path.join(benchmark, "similarities"))
-        for M in range(1):
+        for M in range(15):
             print "\nITERATION %d\n" % M
             filename = os.path.join(benchmark, "dataset", "%d.txt" % M)
             dataset = list(readBenchmark(filename))
